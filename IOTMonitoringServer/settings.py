@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-bu+)8ft@9+qd*#e#f_s@wkyv2tmq+#!a^3j15h3kjk^jzksu0j
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ["localhost", "35.175.110.71"]
+ALLOWED_HOSTS = ["localhost", "3.237.71.102"]
 
 
 # Application definition
@@ -156,7 +156,7 @@ LOGOUT_REDIRECT_URL = '/login/'
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 # Dirección del bróker MQTT
-MQTT_HOST = "44.204.217.153"
+MQTT_HOST = "44.198.54.29"
 
 # Puerto del bróker MQTT
 MQTT_PORT = 8082
