@@ -101,7 +101,8 @@ try:
                        tls_version=ssl.PROTOCOL_TLSv1_2, cert_reqs=ssl.CERT_NONE)
 
     client.username_pw_set(settings.MQTT_USER, settings.MQTT_PASSWORD)
-    client.connect(settings.MQTT_HOST, settings.MQTT_PORT)
+    client.connect(settings.MQTT_HOST, settings.MQTT_PORT,keepalive=60)
+    client.enable_logger()
 
 except Exception as e:
     print('Ocurrió un error al conectar con el bróker MQTT:', e)
