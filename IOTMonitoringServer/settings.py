@@ -162,16 +162,16 @@ MQTT_HOST = "44.204.98.226"
 MQTT_PORT = 8082
 
 # Credenciales para el usuario suscriptor del bróker MQTT
-MQTT_USER = "ironman"
-MQTT_PASSWORD = "jarvis123"
+MQTT_USER = "juliethquinchia"
+MQTT_PASSWORD = "orion123"
 
 # Credenciales para el usuario publicador del bróker MQTT
-MQTT_USER_PUB = "ironman"
-MQTT_PASSWORD_PUB = "jarvis123"
+MQTT_USER_PUB = "juliethquinchia"
+MQTT_PASSWORD_PUB = "orion123"
 
 # Tópico a suscribir. "+/+/+/+/out" se suscribe únicamente a los
 # tópicos con forma <país>/<estado>/<ciudad>/<usuario>/out.
-TOPIC = "colombia/antioquia/rionegro/ironman/out"
+TOPIC = "colombia/antioquia/rionegro/juliethquinchia/out"
 
 # Opción para habilitar la transmisión de mensajes segura
 MQTT_USE_TLS = False
