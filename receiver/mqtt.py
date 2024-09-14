@@ -47,9 +47,27 @@ def on_message(client: mqtt.Client, userdata, message: mqtt.MQTTMessage):
 
 
 def on_connect(client, userdata, flags, rc):
-    print("Suscribiendo al tópico: " + settings.TOPIC)
-    client.subscribe(settings.TOPIC)
-    print("Servicio de recepcion de datos iniciado")
+    if rc == 0:
+        print("Conexión exitosa al broker MQTT")
+        print("Suscribiendo al tópico: " + settings.TOPIC)
+        client.subscribe(settings.TOPIC)
+        print("Servicio de recepción de datos iniciado")
+    else:
+        print(f"Error al conectar al broker MQTT. Código de retorno: {rc}")
+        # Opcional: imprimir el significado del código de retorno
+        if rc == 1:
+            print("Error: La versión del protocolo es incorrecta.")
+        elif rc == 2:
+            print("Error: Identificación de cliente no válida.")
+        elif rc == 3:
+            print("Error: El servidor no está disponible.")
+        elif rc == 4:
+            print("Error: El nombre de usuario o contraseña son incorrectos.")
+        elif rc == 5:
+            print("Error: No autorizado.")
+        else:
+            print("Error desconocido.")
+
 
 
 def on_disconnect(client: mqtt.Client, userdata, rc):
