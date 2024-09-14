@@ -75,9 +75,18 @@ def on_disconnect(client: mqtt.Client, userdata, rc):
     Función que se ejecuta cuando se desconecta del broker.
     Intenta reconectar al bróker.
     '''
-    print("Desconectado con mensaje:" + str(mqtt.connack_string(rc)))
-    print("Reconectando...")
-    client.reconnect()
+    if rc != 0:
+        print(f"Desconexión inesperada. Código de retorno: {rc} - {mqtt.error_string(rc)}")
+    else:
+        print("Desconexión limpia del broker.")
+    
+    # Intentar reconectar automáticamente
+    try:
+        print("Reconectando...")
+        client.reconnect()
+    except Exception as e:
+        print(f"Error al intentar reconectar: {e}")
+
 
 
 print("Iniciando cliente MQTT...", settings.MQTT_HOST, settings.MQTT_PORT)
