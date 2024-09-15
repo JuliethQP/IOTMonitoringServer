@@ -85,7 +85,7 @@ def analyze_measurement_averages():
     alerts = 0
     print('estas son las agregaciones del promedio',aggregation)
     for item in aggregation:
-        alert = False
+        alert = True
 
         variable = item["measurement__name"]
         max_value = item["measurement__max_value"] or 0
