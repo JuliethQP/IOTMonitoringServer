@@ -59,16 +59,12 @@ def analyze_data():
     print(alerts, "alertas enviadas")
 
 
-def analyze_measurement_averages():
-    # Consulta los datos de la última hora, los agrupa por estación y variable
-    # Obtiene el promedio de los valores de las medidas y lo compara con los límites
+def analyze_measurement_averages():   
     print("Calculando promedios...")
-
     data = Data.objects.filter(
         base_time__gte=datetime.now() - timedelta(hours=1))
     umbral = 19
 
-# Realizar la consulta con el filtro incluido
     aggregation = data.annotate(check_value=Avg('avg_value')) \
     .filter(check_value__gt=umbral) \
     .select_related('station', 'measurement') \
@@ -83,7 +79,7 @@ def analyze_measurement_averages():
             'station__location__state__name',
             'station__location__country__name')
     alerts = 0
-    print('estas son las agregaciones del promedio',aggregation)
+    # print('estas son las agregaciones del promedio',aggregation)
     for item in aggregation:
         alert = True
 
