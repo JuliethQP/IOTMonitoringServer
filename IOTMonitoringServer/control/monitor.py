@@ -66,7 +66,7 @@ def analyze_measurement_averages():
 
     data = Data.objects.filter(
         base_time__gte=datetime.now() - timedelta(hours=1))
-    umbral = 18
+    umbral = 19
 
 # Realizar la consulta con el filtro incluido
     aggregation = data.annotate(check_value=Avg('avg_value')) \
