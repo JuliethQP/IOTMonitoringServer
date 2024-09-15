@@ -70,14 +70,10 @@ def analyze_measurement_averages():
         print('base time-->', datetime.now() - timedelta(hours=1))
 
         # Agrega los datos por estación y variable, calculando el promedio
-        aggregation = data.annotate(avg_measurement=Avg('avg_value')) \
-            .select_related('station', 'measurement') \
-            .values('avg_measurement', 'station__user__username', 'measurement__name',
-                    'measurement__max_value', 'measurement__min_value',
-                    'station__location__city__name', 'station__location__state__name',
-                    'station__location__country__name')
-
-        print("Datos obtenidos---", aggregation)
+        aggregation = data.values('measurement_id') \
+        .annotate(avg_measurement=Avg('avg_value')) \
+        .select_related('measurement') \
+        .values('measurement_id', 'measurement__name', 'avg_measurement')
 
         # Inicializa un contador de alertas
         alerts = 0
