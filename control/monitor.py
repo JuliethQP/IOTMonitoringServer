@@ -19,8 +19,7 @@ def analyze_data():
     try:
         print("Calculando alertas...")
 
-        data = Data.objects.filter(
-            base_time__gte=datetime.now() - timedelta(hours=1))
+        data = Data.objects.filter(base_time__gte=datetime.now() - timedelta(hours=1))
         aggregation = data.annotate(check_value=Avg('avg_value')) \
             .select_related('station', 'measurement') \
             .select_related('station__user', 'station__location') \
@@ -60,6 +59,12 @@ def analyze_data():
 
         print(len(aggregation), "dispositivos revisados")
         print(alerts, "alertas enviadas")
+        
+        message = "ALERT {} {} {}".format("humedad", 0, 10)
+        topic = '{}/{}/{}/{}/in'.format(country, state, city, user)
+        print(datetime.now(), "Sending alert to {} {}".format(topic, variable))
+        client.publish(topic, message)
+    
     except DatabaseError as db_err:
         print(f"Error en la base de datos: {db_err}")
     except Exception as e:
