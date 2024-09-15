@@ -69,59 +69,44 @@ def analyze_data():
         print(f"Ocurrió un error: {e}")
 
 
-def analyze_data_on_demand():
-   
+def analyze_measurement_averages():
+    # Consulta los datos de la última hora, los agrupa por estación y variable
+    # Obtiene el promedio de los valores de las medidas y lo compara con los límites
     try:
-        print("Calculando alertas...")
+        print("Calculando promedios...")
 
+        # Filtra los datos de la última hora
         data = Data.objects.filter(base_time__gte=datetime.now() - timedelta(hours=1))
-        print('base time-->',datetime.now() - timedelta(hours=1))
-        aggregation = data.annotate(check_value=Avg('avg_value')) \
+        print('base time-->', datetime.now() - timedelta(hours=1))
+
+        # Agrega los datos por estación y variable, calculando el promedio
+        aggregation = data.annotate(avg_measurement=Avg('avg_value')) \
             .select_related('station', 'measurement') \
-            .select_related('station__user', 'station__location') \
-            .select_related('station__location__city', 'station__location__state',
-                            'station__location__country') \
-            .values('check_value', 'station__user__username',
-                    'measurement__name',
-                    'measurement__max_value',
-                    'measurement__min_value',
-                    'station__location__city__name',
-                    'station__location__state__name',
+            .values('avg_measurement', 'station__user__username', 'measurement__name',
+                    'measurement__max_value', 'measurement__min_value',
+                    'station__location__city__name', 'station__location__state__name',
                     'station__location__country__name')
+
+        print("Datos obtenidos---", aggregation)
+
+       
         alerts = 0
-        print("Datos obtenidos---",aggregation)
         for item in aggregation:
             alert = False
             print('item--->', item)
 
-            variable = item["measurement__name"]
+            # Obtiene el promedio de la medida y los límites de la base de datos
+            avg_measurement = item["avg_measurement"]
             max_value = item["measurement__max_value"] or 0
             min_value = item["measurement__min_value"] or 0
 
-            country = item['station__location__country__name']
-            state = item['station__location__state__name']
-            city = item['station__location__city__name']
-            user = item['station__user__username']
-
-            if item["check_value"] > max_value or item["check_value"] < min_value:
-                alert = True
-
-            if alert:
-                message = "ALERT {} {} {}".format(variable, min_value, max_value)
-                topic = '{}/{}/{}/{}/in'.format(country, state, city, user)
-                print(datetime.now(), "Sending alert to {} {}".format(topic, variable))
-                client.publish(topic, message)
-                alerts += 1
-
-        print(len(aggregation), "dispositivos revisados")
-        print(alerts, "alertas enviadas")
         
-     
-    
     except DatabaseError as db_err:
         print(f"Error en la base de datos: {db_err}")
     except Exception as e:
-        print(f"Ocurrió un error: {e}")
+        print(f"Ocurrió un error: {e}")        
+
+
 
 def on_connect(client, userdata, flags, rc):
     '''
@@ -170,7 +155,7 @@ def start_cron():
     '''
     print("Iniciando cron...")
     schedule.every(5).minutes.do(analyze_data)
-    schedule.every(1).minutes.do(analyze_data_on_demand)
+    schedule.every(1).minutes.do(analyze_measurement_averages)
     print("Servicio de control iniciado")
     while 1:
         schedule.run_pending()

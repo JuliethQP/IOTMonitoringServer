@@ -4,7 +4,7 @@ import json
 import os
 import ssl
 import paho.mqtt.client as mqtt
-from django.conf import settings
+from IOTMonitoringServer import settings
 
 
 def on_message(client: mqtt.Client, userdata, message: mqtt.MQTTMessage):
@@ -47,27 +47,9 @@ def on_message(client: mqtt.Client, userdata, message: mqtt.MQTTMessage):
 
 
 def on_connect(client, userdata, flags, rc):
-    if rc == 0:
-        print("Conexión exitosa al broker MQTT")
-        print("Suscribiendo al tópico: " + settings.TOPIC)
-        client.subscribe(settings.TOPIC)
-        print("Servicio de recepción de datos iniciado")
-    else:
-        print(f"Error al conectar al broker MQTT. Código de retorno: {rc}")
-        # Opcional: imprimir el significado del código de retorno
-        if rc == 1:
-            print("Error: La versión del protocolo es incorrecta.")
-        elif rc == 2:
-            print("Error: Identificación de cliente no válida.")
-        elif rc == 3:
-            print("Error: El servidor no está disponible.")
-        elif rc == 4:
-            print("Error: El nombre de usuario o contraseña son incorrectos.")
-        elif rc == 5:
-            print("Error: No autorizado.")
-        else:
-            print("Error desconocido.")
-
+    print("Suscribiendo al tópico: " + settings.TOPIC)
+    client.subscribe(settings.TOPIC)
+    print("Servicio de recepcion de datos iniciado")
 
 
 def on_disconnect(client: mqtt.Client, userdata, rc):
@@ -75,18 +57,9 @@ def on_disconnect(client: mqtt.Client, userdata, rc):
     Función que se ejecuta cuando se desconecta del broker.
     Intenta reconectar al bróker.
     '''
-    if rc != 0:
-        print(f"Desconexión inesperada. Código de retorno: {rc} - {mqtt.error_string(rc)}")
-    else:
-        print("Desconexión limpia del broker.")
-    
-    # Intentar reconectar automáticamente
-    try:
-        print("Reconectando...")
-        client.reconnect()
-    except Exception as e:
-        print(f"Error al intentar reconectar: {e}")
-
+    print("Desconectado con mensaje:" + str(mqtt.connack_string(rc)))
+    print("Reconectando...")
+    client.reconnect()
 
 
 print("Iniciando cliente MQTT...", settings.MQTT_HOST, settings.MQTT_PORT)
@@ -101,8 +74,7 @@ try:
                        tls_version=ssl.PROTOCOL_TLSv1_2, cert_reqs=ssl.CERT_NONE)
 
     client.username_pw_set(settings.MQTT_USER, settings.MQTT_PASSWORD)
-    client.connect(settings.MQTT_HOST, settings.MQTT_PORT,keepalive=60)
-    client.enable_logger()
+    client.connect(settings.MQTT_HOST, settings.MQTT_PORT)
 
 except Exception as e:
     print('Ocurrió un error al conectar con el bróker MQTT:', e)
