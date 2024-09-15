@@ -72,8 +72,9 @@ def analyze_measurement_averages():
         # Agrega los datos por estación y variable, calculando el promedio
         aggregation = data.values('measurement_id') \
         .annotate(avg_measurement=Avg('avg_value')) \
-        .select_related('measurement') \
-        .values('measurement_id', 'measurement__name', 'avg_measurement')
+        .values('measurement_id', 'avg_measurement')
+
+        print("Datos obtenidos---", aggregation)
 
         # Inicializa un contador de alertas
         alerts = 0
