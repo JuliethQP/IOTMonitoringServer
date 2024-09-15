@@ -83,6 +83,7 @@ def analyze_measurement_averages():
             'station__location__state__name',
             'station__location__country__name')
     alerts = 0
+    print('estas son las agregaciones del promedio',aggregation)
     for item in aggregation:
         alert = False
 
