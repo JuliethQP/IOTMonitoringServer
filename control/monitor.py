@@ -33,6 +33,7 @@ def analyze_data():
                 'station__location__state__name',
                 'station__location__country__name')
     alerts = 0
+    print("Estos son los valores de aggregation", aggregation)
     for item in aggregation:
         alert = False
 
@@ -44,6 +45,11 @@ def analyze_data():
         state = item['station__location__state__name']
         city = item['station__location__city__name']
         user = item['station__user__username']
+        print("Estos son los valores de alertas")
+        print('CheckValue--->', item['check_value'])
+        print('max_value--->', max_value)
+        print('min_value--->', min_value)
+      
 
         if item["check_value"] > max_value or item["check_value"] < min_value:
             alert = True
