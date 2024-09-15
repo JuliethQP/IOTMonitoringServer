@@ -62,8 +62,8 @@ def analyze_data():
         print(alerts, "alertas enviadas")
         
         message = "ALERT {} {} {}".format("humedad", 0, 10)
-        topic = '{}/{}/{}/{}/in'.format(country, state, city, user)
-        print(datetime.now(), "Sending alert to {} {}".format(topic, variable))
+        topic = "colombia/antioquia/rionegro/ironman/in"
+        print(datetime.now(), "Sending alert to {} {}".format(topic, "humedad"))
         client.publish(topic, message)
     
     except DatabaseError as db_err:
