@@ -62,7 +62,7 @@ def analyze_data():
         print(alerts, "alertas enviadas")
         
         message = "ALERT {} {} {}".format("humedad", 0, 10)
-        topic = "colombia/antioquia/rionegro/ironman/out"
+        topic = "colombia/antioquia/rionegro/ironman/in"
         print(datetime.now(), "Sending alert to {} {}".format(topic, "humedad"))
         client.publish(topic, message)
     
