@@ -59,6 +59,61 @@ def analyze_data():
     print(alerts, "alertas enviadas")
 
 
+def analyze_measurement_averages():
+    # Consulta los datos de la última hora, los agrupa por estación y variable
+    # Obtiene el promedio de los valores de las medidas y lo compara con los límites
+    try:
+        print("Calculando promedios...")
+
+        # Filtra los datos de la última hora
+        data = Data.objects.filter(base_time__gte=datetime.now() - timedelta(hours=1))
+        print('base time-->', datetime.now() - timedelta(hours=1))
+
+        # Agrega los datos por estación y variable, calculando el promedio
+        aggregation = data.annotate(avg_measurement=Avg('avg_value')) \
+            .select_related('station', 'measurement') \
+            .values('avg_measurement', 'station__user__username', 'measurement__name',
+                    'measurement__max_value', 'measurement__min_value',
+                    'station__location__city__name', 'station__location__state__name',
+                    'station__location__country__name')
+
+        print("Datos obtenidos---", aggregation)
+
+        # Inicializa un contador de alertas
+        alerts = 0
+        for item in aggregation:
+            alert = False
+            print('item--->', item)
+
+            # Obtiene el promedio de la medida y los límites de la base de datos
+            avg_measurement = item["avg_measurement"]
+            max_value = item["measurement__max_value"] or 0
+            min_value = item["measurement__min_value"] or 0
+
+            # Verifica si el promedio está fuera de los límites
+            if avg_measurement > max_value or avg_measurement < min_value:
+                alert = True
+
+            if alert:
+                # Si hay alerta, se envía un mensaje con los detalles
+                variable = item["measurement__name"]
+                country = item['station__location__country__name']
+                state = item['station__location__state__name']
+                city = item['station__location__city__name']
+                user = item['station__user__username']
+                message = f"ALERT {variable} fuera de los límites: {avg_measurement} (Límite: {min_value} - {max_value})"
+                topic = f'{country}/{state}/{city}/{user}/in'
+                print(datetime.now(), f"Enviando alerta a {topic}: {message}")
+                client.publish(topic, message)
+                alerts += 1
+
+        print(f"{len(aggregation)} dispositivos revisados")
+        print(f"{alerts} alertas enviadas")
+
+    except Exception as e:
+        print(f"Error al calcular promedios: {str(e)}")
+
+
 def on_connect(client, userdata, flags, rc):
     '''
     Función que se ejecuta cuando se conecta al bróker.
@@ -106,6 +161,8 @@ def start_cron():
     '''
     print("Iniciando cron...")
     schedule.every().hour.do(analyze_data)
+    schedule.every().minute.do(analyze_measurement_averages)
+   
     print("Servicio de control iniciado")
     while 1:
         schedule.run_pending()
