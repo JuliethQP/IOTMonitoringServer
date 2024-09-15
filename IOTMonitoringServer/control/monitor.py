@@ -62,56 +62,48 @@ def analyze_data():
 def analyze_measurement_averages():
     # Consulta los datos de la última hora, los agrupa por estación y variable
     # Obtiene el promedio de los valores de las medidas y lo compara con los límites
-    try:
-        print("Calculando promedios...")
+    print("Calculando promedios...")
 
-        # Filtra los datos de la última hora
-        data = Data.objects.filter(base_time__gte=datetime.now() - timedelta(hours=1))
-        print('base time-->', datetime.now() - timedelta(hours=1))
+    data = Data.objects.filter(
+        base_time__gte=datetime.now() - timedelta(hours=1))
+    umbral = 18
 
-        # Agrega los datos por estación y variable, calculando el promedio
-        aggregation = data.values('measurement_id') \
-        .annotate(avg_measurement=Avg('avg_value')) \
-        .values('avg_measurement')
+# Realizar la consulta con el filtro incluido
+    aggregation = data.annotate(check_value=Avg('avg_value')) \
+    .filter(check_value__gt=umbral) \
+    .select_related('station', 'measurement') \
+    .select_related('station__user', 'station__location') \
+    .select_related('station__location__city', 'station__location__state',
+                    'station__location__country') \
+    .values('check_value', 'station__user__username',
+            'measurement__name',
+            'measurement__max_value',
+            'measurement__min_value',
+            'station__location__city__name',
+            'station__location__state__name',
+            'station__location__country__name')
+    alerts = 0
+    for item in aggregation:
+        alert = False
 
-        # Paso 2: Calcular el promedio de esos promedios
-        overall_avg = aggregation.aggregate(overall_avg=Avg('avg_measurement'))['overall_avg']
+        variable = item["measurement__name"]
+        max_value = item["measurement__max_value"] or 0
+        min_value = item["measurement__min_value"] or 0
 
-        print("Promedio general de los promedios de avg_value:", overall_avg)
+        country = item['station__location__country__name']
+        state = item['station__location__state__name']
+        city = item['station__location__city__name']
+        user = item['station__user__username']        
 
-        # Inicializa un contador de alertas
-        alerts = 0
-        for item in aggregation:
-            alert = False
-            print('item--->', item)
+        if alert:
+            message = "ALERT PROMEDIO {} {} {}".format(variable, min_value, max_value)
+            topic = '{}/{}/{}/{}/in'.format(country, state, city, user)
+            print(datetime.now(), "Enviando alerta de PROMEDIOS.. {} {}".format(topic, variable))
+            client.publish(topic, message)
+            alerts += 1
 
-            # Obtiene el promedio de la medida y los límites de la base de datos
-            avg_measurement = item["avg_measurement"]
-            max_value = item["measurement__max_value"] or 0
-            min_value = item["measurement__min_value"] or 0
-
-            # Verifica si el promedio está fuera de los límites
-            if avg_measurement > max_value or avg_measurement < min_value:
-                alert = True
-
-            if alert:
-                # Si hay alerta, se envía un mensaje con los detalles
-                variable = item["measurement__name"]
-                country = item['station__location__country__name']
-                state = item['station__location__state__name']
-                city = item['station__location__city__name']
-                user = item['station__user__username']
-                message = f"ALERT PROMEDIO {variable} fuera de los límites: {avg_measurement} (Límite: {min_value} - {max_value})"
-                topic = f'{country}/{state}/{city}/{user}/in'
-                print(datetime.now(), f"Enviando alerta a {topic}: {message}")
-                client.publish(topic, message)
-                alerts += 1
-
-        print(f"{len(aggregation)} dispositivos revisados")
-        print(f"{alerts} alertas enviadas")
-
-    except Exception as e:
-        print(f"Error al calcular promedios: {str(e)}")
+    print(len(aggregation), "dispositivos revisados")
+    print(alerts, "alertas enviadas")
 
 
 def on_connect(client, userdata, flags, rc):
