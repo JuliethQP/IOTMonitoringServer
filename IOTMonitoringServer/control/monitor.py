@@ -101,7 +101,7 @@ def analyze_measurement_averages():
                 state = item['station__location__state__name']
                 city = item['station__location__city__name']
                 user = item['station__user__username']
-                message = f"ALERT {variable} fuera de los límites: {avg_measurement} (Límite: {min_value} - {max_value})"
+                message = f"ALERT PROMEDIO {variable} fuera de los límites: {avg_measurement} (Límite: {min_value} - {max_value})"
                 topic = f'{country}/{state}/{city}/{user}/in'
                 print(datetime.now(), f"Enviando alerta a {topic}: {message}")
                 client.publish(topic, message)
