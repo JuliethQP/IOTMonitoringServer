@@ -7,8 +7,6 @@ import paho.mqtt.client as mqtt
 import schedule
 import time
 from django.conf import settings
-from django.utils import timezone
-from django.db import DatabaseError
 
 client = mqtt.Client(settings.MQTT_USER_PUB)
 
@@ -17,59 +15,50 @@ def analyze_data():
     # Consulta todos los datos de la última hora, los agrupa por estación y variable
     # Compara el promedio con los valores límite que están en la base de datos para esa variable.
     # Si el promedio se excede de los límites, se envia un mensaje de alerta.
-    try:
-        print("Calculando alertas...")
 
-        data = Data.objects.filter(base_time__gte=timezone.now() - timedelta(hours=1))
-        aggregation = data.annotate(check_value=Avg('avg_value')) \
-            .select_related('station', 'measurement') \
-            .select_related('station__user', 'station__location') \
-            .select_related('station__location__city', 'station__location__state',
-                            'station__location__country') \
-            .values('check_value', 'station__user__username',
-                    'measurement__name',
-                    'measurement__max_value',
-                    'measurement__min_value',
-                    'station__location__city__name',
-                    'station__location__state__name',
-                    'station__location__country__name')
-        alerts = 0
-        print("Estos son los valores de aggregation", aggregation)
-        for item in aggregation:
-            alert = False
+    print("Calculando alertas...")
 
-            variable = item["measurement__name"]
-            max_value = item["measurement__max_value"] or 0
-            min_value = item["measurement__min_value"] or 0
+    data = Data.objects.filter(
+        base_time__gte=datetime.now() - timedelta(hours=1))
+    aggregation = data.annotate(check_value=Avg('avg_value')) \
+        .select_related('station', 'measurement') \
+        .select_related('station__user', 'station__location') \
+        .select_related('station__location__city', 'station__location__state',
+                        'station__location__country') \
+        .values('check_value', 'station__user__username',
+                'measurement__name',
+                'measurement__max_value',
+                'measurement__min_value',
+                'station__location__city__name',
+                'station__location__state__name',
+                'station__location__country__name')
+    alerts = 0
+    for item in aggregation:
+        alert = False
 
-            country = item['station__location__country__name']
-            state = item['station__location__state__name']
-            city = item['station__location__city__name']
-            user = item['station__user__username']
-            print("Estos son los valores de alertas")
-            print('CheckValue--->', item['check_value'])
-            print('max_value--->', max_value)
-            print('min_value--->', min_value)
-        
+        variable = item["measurement__name"]
+        max_value = item["measurement__max_value"] or 0
+        min_value = item["measurement__min_value"] or 0
 
-            if item["check_value"] > max_value or item["check_value"] < min_value:
-                alert = True
+        country = item['station__location__country__name']
+        state = item['station__location__state__name']
+        city = item['station__location__city__name']
+        user = item['station__user__username']
 
-            if alert:
-                message = "ALERT {} {} {}".format(variable, min_value, max_value)
-                topic = '{}/{}/{}/{}/in'.format(country, state, city, user)
-                print(datetime.now(), "Sending alert to {} {}".format(topic, variable))
-                client.publish(topic, message)
-                alerts += 1
+        if item["check_value"] > max_value or item["check_value"] < min_value:
+            alert = True
 
-        print(len(aggregation), "dispositivos revisados")
-        print(alerts, "alertas enviadas")
+        if alert:
+            message = "ALERT {} {} {}".format(variable, min_value, max_value)
+            topic = '{}/{}/{}/{}/in'.format(country, state, city, user)
+            print(datetime.now(), "Sending alert to {} {}".format(topic, variable))
+            client.publish(topic, message)
+            alerts += 1
 
-    except DatabaseError as db_err:
-        print(f"Error en la base de datos: {db_err}")
-    except Exception as e:
-        print(f"Ocurrió un error: {e}")
-        
+    print(len(aggregation), "dispositivos revisados")
+    print(alerts, "alertas enviadas")
+
+
 def on_connect(client, userdata, flags, rc):
     '''
     Función que se ejecuta cuando se conecta al bróker.
