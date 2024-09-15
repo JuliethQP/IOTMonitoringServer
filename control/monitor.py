@@ -61,10 +61,62 @@ def analyze_data():
         print(len(aggregation), "dispositivos revisados")
         print(alerts, "alertas enviadas")
         
-        message = "ALERT {} {} {}".format("humedad", 0, 10)
-        topic = "colombia/antioquia/rionegro/ironman/in"
-        print(datetime.now(), "Sending alert to {} {}".format(topic, "humedad"))
-        client.publish(topic, message)
+     
+    
+    except DatabaseError as db_err:
+        print(f"Error en la base de datos: {db_err}")
+    except Exception as e:
+        print(f"Ocurrió un error: {e}")
+
+
+def analyze_data_on_demand():
+   
+    try:
+        print("Calculando alertas...")
+
+        data = Data.objects.filter(base_time__gte=datetime.now() - timedelta(hours=1))
+        print('base time-->',datetime.now() - timedelta(hours=1))
+        aggregation = data.annotate(check_value=Avg('avg_value')) \
+            .select_related('station', 'measurement') \
+            .select_related('station__user', 'station__location') \
+            .select_related('station__location__city', 'station__location__state',
+                            'station__location__country') \
+            .values('check_value', 'station__user__username',
+                    'measurement__name',
+                    'measurement__max_value',
+                    'measurement__min_value',
+                    'station__location__city__name',
+                    'station__location__state__name',
+                    'station__location__country__name')
+        alerts = 0
+        print("Datos obtenidos---",aggregation)
+        for item in aggregation:
+            alert = False
+            print('item--->', item)
+
+            variable = item["measurement__name"]
+            max_value = item["measurement__max_value"] or 0
+            min_value = item["measurement__min_value"] or 0
+
+            country = item['station__location__country__name']
+            state = item['station__location__state__name']
+            city = item['station__location__city__name']
+            user = item['station__user__username']
+
+            if item["check_value"] > max_value or item["check_value"] < min_value:
+                alert = True
+
+            if alert:
+                message = "ALERT {} {} {}".format(variable, min_value, max_value)
+                topic = '{}/{}/{}/{}/in'.format(country, state, city, user)
+                print(datetime.now(), "Sending alert to {} {}".format(topic, variable))
+                client.publish(topic, message)
+                alerts += 1
+
+        print(len(aggregation), "dispositivos revisados")
+        print(alerts, "alertas enviadas")
+        
+     
     
     except DatabaseError as db_err:
         print(f"Error en la base de datos: {db_err}")
@@ -117,7 +169,8 @@ def start_cron():
     Inicia el cron que se encarga de ejecutar la función analyze_data cada 5 minutos.
     '''
     print("Iniciando cron...")
-    schedule.every(1).minutes.do(analyze_data)
+    schedule.every(5).minutes.do(analyze_data)
+    schedule.every(1).minutes.do(analyze_data_on_demand)
     print("Servicio de control iniciado")
     while 1:
         schedule.run_pending()
